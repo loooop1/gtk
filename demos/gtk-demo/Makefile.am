@@ -69,7 +69,8 @@ demos_base =					\
 	theming_style_classes.c			\
 	toolpalette.c				\
 	transparent.c				\
-	tree_store.c
+	tree_store.c 				\
+	image_view.c
 
 demos_opt =
 
