@@ -19,6 +19,7 @@ file_set_cb (GtkFileChooserButton *widget,
   GFile *file = g_file_new_for_path (filename);
   gtk_image_view_load_from_file_async (GTK_IMAGE_VIEW (image_view),
                                        file,
+                                       1,
                                        NULL,
                                        generic_cb,
                                        NULL);
@@ -31,26 +32,10 @@ load_button_cb ()
   GFile *file = g_file_new_for_uri (uri);
   gtk_image_view_load_from_file_async (GTK_IMAGE_VIEW (image_view),
                                        file,
+                                       1,
                                        NULL,
                                        generic_cb,
                                        NULL);
-}
-
-void
-zoom_mode_changed_cb (GtkComboBox *widget,
-                      gpointer     user_data)
-{
-  const gchar *new_id = gtk_combo_box_get_active_id (widget);
-
-  if (g_strcmp0 (new_id, "fit") == 0)
-    gtk_image_view_set_zoom_mode (GTK_IMAGE_VIEW (image_view),
-                                  GTK_IMAGE_VIEW_ZOOM_MODE_FIT);
-  else if (g_strcmp0 (new_id, "original") == 0)
-    gtk_image_view_set_zoom_mode (GTK_IMAGE_VIEW (image_view),
-                                  GTK_IMAGE_VIEW_ZOOM_MODE_ORIGINAL);
-  else
-    g_error (new_id);
-
 }
 
 void
@@ -97,9 +82,12 @@ scrolled_check_button_active_cb (GObject *source)
     {
       GtkWidget *grandparent = gtk_widget_get_parent (parent);
       g_assert (grandparent != NULL);
+      g_object_ref (G_OBJECT (image_view));
+      gtk_container_remove (GTK_CONTAINER (parent), image_view);
       gtk_container_remove (GTK_CONTAINER (grandparent), parent);
       gtk_container_add (GTK_CONTAINER (grandparent), image_view);
       gtk_widget_show (image_view);
+      g_object_unref (G_OBJECT (image_view));
     }
   else
     {
@@ -107,6 +95,7 @@ scrolled_check_button_active_cb (GObject *source)
       gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scroller),
                                       GTK_POLICY_ALWAYS,
                                       GTK_POLICY_ALWAYS);
+      gtk_scrolled_window_set_overlay_scrolling (GTK_SCROLLED_WINDOW (scroller), FALSE);
       gtk_widget_show (scroller);
       gtk_container_remove (GTK_CONTAINER (parent), image_view);
       gtk_container_add (GTK_CONTAINER (scroller), image_view);
@@ -132,6 +121,87 @@ scale_scale_format_value_cb (GtkScale *scale,
 }
 
 
+void
+load_pixbuf_button_clicked_cb ()
+{
+  GdkPixbuf *pixbuf;
+
+  /* I really hope you have this. */
+  pixbuf = gdk_pixbuf_new_from_file ("/usr/share/backgrounds/gnome/adwaita-day.jpg",
+                                     NULL);
+
+  g_assert (pixbuf != NULL);
+  gtk_image_view_set_pixbuf (GTK_IMAGE_VIEW (image_view), pixbuf, 1);
+
+  g_object_unref (G_OBJECT (pixbuf));
+}
+
+
+void
+load_hidpi_pixbuf_button_clicked_cb ()
+{
+  GdkPixbuf *pixbuf;
+
+  /* I really hope you have this. */
+  pixbuf = gdk_pixbuf_new_from_file ("/usr/share/backgrounds/gnome/adwaita-day.jpg",
+                                     NULL);
+
+  g_assert (pixbuf != NULL);
+  gtk_image_view_set_pixbuf (GTK_IMAGE_VIEW (image_view), pixbuf, 2);
+
+  g_object_unref (G_OBJECT (pixbuf));
+}
+
+void
+load_surface_button_clicked_cb ()
+{
+  GdkPixbuf *pixbuf;
+  cairo_surface_t *surface;
+
+  /* I really hope you have this. */
+  pixbuf = gdk_pixbuf_new_from_file ("/usr/share/backgrounds/gnome/adwaita-day.jpg",
+                                     NULL);
+
+  g_assert (pixbuf != NULL);
+
+  surface = gdk_cairo_surface_create_from_pixbuf (pixbuf, 1, NULL);
+
+  g_object_unref (G_OBJECT (pixbuf));
+
+  gtk_image_view_set_surface (GTK_IMAGE_VIEW (image_view), surface);
+}
+
+
+void
+clear_button_clicked_cb ()
+{
+  gtk_image_view_set_surface (GTK_IMAGE_VIEW (image_view), NULL);
+}
+
+void
+prepare_image_cb (GtkImageView    *image_view,
+                  cairo_surface_t *surface)
+{
+  cairo_t *ct;
+  int width;
+  int height;
+
+  g_assert (GTK_IS_IMAGE_VIEW (image_view));
+
+  g_assert (surface != NULL);
+  g_assert (cairo_surface_get_type (surface) == CAIRO_SURFACE_TYPE_IMAGE);
+
+
+  ct = cairo_create (surface);
+  width  = cairo_image_surface_get_width (surface);
+  height = cairo_image_surface_get_height (surface);
+
+
+  cairo_set_source_rgba (ct, 0, 1, 0, 1);
+  cairo_set_line_width (ct, 5.0);
+  cairo_rectangle (ct, 0, 0, width, height);
+  cairo_stroke (ct);
+}
 
 
 GtkWidget *
@@ -142,8 +212,8 @@ do_image_view (GtkWidget *do_widget)
          image_view   = GTK_WIDGET (gtk_builder_get_object (builder, "image_view"));
           uri_entry   = GTK_WIDGET (gtk_builder_get_object (builder, "uri_entry"));
   GtkWidget *box      = GTK_WIDGET (gtk_builder_get_object (builder, "box"));
-  GtkWidget *zoom_mode_combo   = GTK_WIDGET (gtk_builder_get_object (builder, "zoom_mode_combo"));
   GtkWidget *snap_angle_button = GTK_WIDGET (gtk_builder_get_object (builder, "snap_angle_check_button"));
+  GtkWidget *fit_allocation_button = GTK_WIDGET (gtk_builder_get_object (builder, "fit_allocation_check_button"));
   GtkWidget *header_bar = gtk_header_bar_new ();
   gtk_header_bar_set_show_close_button (GTK_HEADER_BAR (header_bar), TRUE);
   gtk_window_set_titlebar (GTK_WINDOW (window), header_bar);
@@ -151,19 +221,19 @@ do_image_view (GtkWidget *do_widget)
   GtkAdjustment *scale_adjustment = GTK_ADJUSTMENT (gtk_builder_get_object (builder, "scale_adjustment"));
   GtkAdjustment *angle_adjustment = GTK_ADJUSTMENT (gtk_builder_get_object (builder, "angle_adjustment"));
 
+
+  /*g_signal_connect (G_OBJECT (image_view), "prepare-image", G_CALLBACK (prepare_image_cb), NULL);*/
+
+
   g_object_bind_property (scale_adjustment, "value", image_view, "scale",
-                          G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
+                          G_BINDING_BIDIRECTIONAL);
   g_object_bind_property (image_view, "angle", angle_adjustment, "value",
                           G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
   g_object_bind_property (image_view, "snap-angle", snap_angle_button, "active",
                           G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
+  g_object_bind_property (image_view, "fit-allocation", fit_allocation_button, "active",
+                          G_BINDING_BIDIRECTIONAL | G_BINDING_SYNC_CREATE);
 
-
-
-  if (gtk_image_view_get_zoom_mode (GTK_IMAGE_VIEW (image_view)) == GTK_IMAGE_VIEW_ZOOM_MODE_FIT)
-    gtk_combo_box_set_active_id (GTK_COMBO_BOX (zoom_mode_combo), "fit");
-  else if (gtk_image_view_get_zoom_mode (GTK_IMAGE_VIEW (image_view)) == GTK_IMAGE_VIEW_ZOOM_MODE_ORIGINAL)
-    gtk_combo_box_set_active_id (GTK_COMBO_BOX (zoom_mode_combo), "original");
 
   gtk_container_add (GTK_CONTAINER (window), box);
   gtk_builder_connect_signals (builder, NULL);

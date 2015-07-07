@@ -35,46 +35,60 @@ struct _GtkImageViewClass
   void (* prepare_image) (cairo_surface_t *image);
 };
 
-typedef enum
-{
-  GTK_IMAGE_VIEW_ZOOM_MODE_ORIGINAL,
-  GTK_IMAGE_VIEW_ZOOM_MODE_FIT,
-  GTK_IMAGE_VIEW_ZOOM_MODE_NONE
-} GtkImageViewZoomMode;
-
 
 GDK_AVAILABLE_IN_3_18
 GType         gtk_image_view_get_type (void) G_GNUC_CONST;
 
 GDK_AVAILABLE_IN_3_18
-GtkWidget *   gtk_image_view_new      ();
+GtkWidget *   gtk_image_view_new      (void);
+
+GDK_AVAILABLE_IN_3_18
+void gtk_image_view_set_pixbuf (GtkImageView    *image_view,
+                                const GdkPixbuf *pixbuf,
+                                int              scale_factor);
+
+GDK_AVAILABLE_IN_3_18
+void gtk_image_view_set_surface (GtkImageView    *image_view,
+                                 cairo_surface_t *surface);
+
+GDK_AVAILABLE_IN_3_18
+void gtk_image_view_set_animation (GtkImageView       *image_view,
+                                   GdkPixbufAnimation *animation,
+                                   int                 scale_factor);
 
 
 /* Loading {{{ */
 
 GDK_AVAILABLE_IN_3_18
-void          gtk_image_view_load_from_file_async    (GtkImageView        *image_view,
-                                                      GFile               *file,
-                                                      GCancellable        *cancellable,
-                                                      GAsyncReadyCallback  callback,
-                                                      gpointer             user_data);
+void gtk_image_view_load_from_file_async    (GtkImageView        *image_view,
+                                             GFile               *file,
+                                             int                  scale_factor,
+                                             GCancellable        *cancellable,
+                                             GAsyncReadyCallback  callback,
+                                             gpointer             user_data);
 GDK_AVAILABLE_IN_3_18
-void          gtk_image_view_load_from_file_finish   (GtkImageView  *image_view,
-                                                      GAsyncResult  *result,
-                                                      GError       **error);
+void  gtk_image_view_load_from_file_finish   (GtkImageView  *image_view,
+                                              GAsyncResult  *result,
+                                              GError       **error);
 GDK_AVAILABLE_IN_3_18
-void          gtk_image_view_load_from_stream_async  (GtkImageView  *image_view,
-                                                      GInputStream  *stream);
+void gtk_image_view_load_from_stream_async (GtkImageView        *image_view,
+                                            GInputStream        *input_stream,
+                                            int                  scale_factor,
+                                            GCancellable        *cancellable,
+                                            GAsyncReadyCallback  callback,
+                                            gpointer             user_data);
+
 GDK_AVAILABLE_IN_3_18
-void          gtk_image_view_load_from_stream_finish (GtkImageView  *image_view,
-                                                      GAsyncResult  *result,
-                                                      GError       **error);
+void gtk_image_view_load_from_stream_finish (GtkImageView  *image_view,
+                                             GAsyncResult  *result,
+                                             GError       **error);
 
 /* }}} */
 
 /* Setters/Getters {{{ */
 GDK_AVAILABLE_IN_3_18
-void   gtk_image_view_set_scale (GtkImageView *image_view, double scale);
+void   gtk_image_view_set_scale (GtkImageView *image_view,
+                                 double        scale);
 
 GDK_AVAILABLE_IN_3_18
 double gtk_image_view_get_scale (GtkImageView *image_view);
@@ -82,7 +96,8 @@ double gtk_image_view_get_scale (GtkImageView *image_view);
 
 
 GDK_AVAILABLE_IN_3_18
-void  gtk_image_view_set_angle (GtkImageView *image_view, double angle);
+void  gtk_image_view_set_angle (GtkImageView *image_view,
+                                double        angle);
 
 GDK_AVAILABLE_IN_3_18
 double gtk_image_view_get_angle (GtkImageView *image_view);
@@ -90,26 +105,38 @@ double gtk_image_view_get_angle (GtkImageView *image_view);
 
 
 GDK_AVAILABLE_IN_3_18
-void gtk_image_view_set_zoom_mode (GtkImageView         *image_view,
-                                   GtkImageViewZoomMode  zoom_mode);
-
-GDK_AVAILABLE_IN_3_18
-GtkImageViewZoomMode gtk_image_view_get_zoom_mode (GtkImageView *image_view);
-
-
-
-GDK_AVAILABLE_IN_3_18
-gboolean gtk_image_view_snap_angle (GtkImageView *image_view);
-
-GDK_AVAILABLE_IN_3_18
 void gtk_image_view_set_snap_angle (GtkImageView *image_view,
-                                    gboolean      snap_rotation);
+                                    gboolean      snap_angle);
+
+GDK_AVAILABLE_IN_3_18
+gboolean gtk_image_view_get_snap_angle (GtkImageView *image_view);
 
 
 
-// XXX Adding a gtk_image_view_set_pixbuf would work, but we are working with animations internally...
+GDK_AVAILABLE_IN_3_18
+void gtk_image_view_set_fit_allocation (GtkImageView *image_view,
+                                        gboolean      fit_allocation);
+
+GDK_AVAILABLE_IN_3_18
+gboolean gtk_image_view_get_fit_allocation (GtkImageView *image_view);
 
 
+
+GDK_AVAILABLE_IN_3_18
+void gtk_image_view_set_rotate_gesture_enabled (GtkImageView *image_view,
+                                                gboolean      rotate_gesture_enabled);
+
+GDK_AVAILABLE_IN_3_18
+gboolean gtk_image_view_get_rotate_gesture_enabled (GtkImageView *image_view);
+
+
+
+GDK_AVAILABLE_IN_3_18
+void gtk_image_view_set_zoom_gesture_enabled (GtkImageView *image_view,
+                                              gboolean      zoom_gesture_enabled);
+
+GDK_AVAILABLE_IN_3_18
+gboolean gtk_image_view_get_zoom_gesture_enabled (GtkImageView *image_view);
 
 /* }}} */
 

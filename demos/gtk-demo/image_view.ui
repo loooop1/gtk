@@ -64,22 +64,70 @@
         </child>
 
 
-
-
         <child>
-          <object class="GtkComboBoxText" id="zoom_mode_combo">
+          <object class="GtkButton">
             <property name="visible">true</property>
-            <signal name="changed" handler="zoom_mode_changed_cb" />
-
-            <items>
-              <item id="fit">ZOOM_MODE_FIT</item>
-              <item id="original">ZOOM_MODE_ORIGINAL</item>
-            </items>
-
+            <property name="label" translatable="yes">Load Pixbuf</property>
+            <signal name="clicked" handler="load_pixbuf_button_clicked_cb" object="image_view"/>
           </object>
           <packing>
             <property name="left_attach">0</property>
             <property name="top_attach">2</property>
+            <property name="width">2</property>
+          </packing>
+        </child>
+
+        <child>
+          <object class="GtkButton">
+            <property name="visible">true</property>
+            <property name="label" translatable="yes">Load HiDPI Pixbuf</property>
+            <signal name="clicked" handler="load_hidpi_pixbuf_button_clicked_cb" object="image_view"/>
+          </object>
+          <packing>
+            <property name="left_attach">0</property>
+            <property name="top_attach">3</property>
+            <property name="width">2</property>
+          </packing>
+        </child>
+
+
+        <child>
+          <object class="GtkButton">
+            <property name="visible">true</property>
+            <property name="label" translatable="yes">Load Surface</property>
+            <signal name="clicked" handler="load_surface_button_clicked_cb" />
+          </object>
+          <packing>
+            <property name="left_attach">0</property>
+            <property name="top_attach">4</property>
+            <property name="width">2</property>
+          </packing>
+        </child>
+
+
+        <child>
+          <object class="GtkButton">
+            <property name="visible">true</property>
+            <property name="label" translatable="yes">Clear</property>
+            <signal name="clicked" handler="clear_button_clicked_cb" />
+          </object>
+          <packing>
+            <property name="left_attach">0</property>
+            <property name="top_attach">4</property>
+            <property name="width">2</property>
+          </packing>
+        </child>
+
+
+
+        <child>
+          <object class="GtkCheckButton" id="fit_allocation_check_button">
+            <property name="visible">true</property>
+            <property name="label" translatable="yes">Fit Allocation</property>
+          </object>
+          <packing>
+            <property name="left_attach">0</property>
+            <property name="top_attach">6</property>
             <property name="width">2</property>
           </packing>
         </child>
@@ -93,11 +141,25 @@
           </object>
           <packing>
             <property name="left_attach">0</property>
-            <property name="top_attach">3</property>
+            <property name="top_attach">7</property>
             <property name="width">2</property>
           </packing>
         </child>
 
+
+
+
+        <child>
+          <object class="GtkCheckButton">
+            <property name="visible">true</property>
+            <property name="label" translatable="yes">Draw on Surface</property>
+          </object>
+          <packing>
+            <property name="left_attach">0</property>
+            <property name="top_attach">8</property>
+            <property name="width">2</property>
+          </packing>
+        </child>
 
 
         <child>
@@ -109,7 +171,7 @@
           </object>
           <packing>
             <property name="left_attach">0</property>
-            <property name="top_attach">4</property>
+            <property name="top_attach">9</property>
             <property name="width">2</property>
           </packing>
         </child>
@@ -122,11 +184,10 @@
           </object>
           <packing>
             <property name="left_attach">0</property>
-            <property name="top_attach">5</property>
+            <property name="top_attach">10</property>
             <property name="width">2</property>
           </packing>
         </child>
-
 
         <child>
           <object class="GtkScale" id="angle_scale">
@@ -137,7 +198,7 @@
           </object>
           <packing>
             <property name="left_attach">0</property>
-            <property name="top_attach">6</property>
+            <property name="top_attach">11</property>
             <property name="width">2</property>
           </packing>
         </child>
@@ -180,7 +241,7 @@
           </object>
           <packing>
             <property name="left_attach">0</property>
-            <property name="top_attach">7</property>
+            <property name="top_attach">12</property>
             <property name="width">2</property>
           </packing>
         </child>
@@ -195,7 +256,7 @@
           </object>
           <packing>
             <property name="left_attach">0</property>
-            <property name="top_attach">8</property>
+            <property name="top_attach">13</property>
             <property name="width">2</property>
           </packing>
         </child>
@@ -209,7 +270,7 @@
           </object>
           <packing>
             <property name="left_attach">0</property>
-            <property name="top_attach">9</property>
+            <property name="top_attach">14</property>
             <property name="width">2</property>
           </packing>
         </child>
@@ -218,9 +279,6 @@
       </object>
 
     </child>
-
-
-
 
     <child>
       <object class="GtkImageView" id="image_view">
