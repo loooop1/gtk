@@ -25,6 +25,26 @@ file_set_cb (GtkFileChooserButton *widget,
                                        NULL);
 }
 
+
+static void
+image_loaded_cb (GObject      *source_object,
+                 GAsyncResult *result,
+                 gpointer      user_data)
+{
+  GtkImageView *image_view = GTK_IMAGE_VIEW (source_object);
+  GError *error = NULL;
+
+  gtk_image_view_load_from_file_finish (image_view,
+                                        result,
+                                        &error);
+
+  if (error)
+    {
+      g_message ("Error: %s", error->message);
+      return;
+    }
+}
+
 void
 load_button_cb ()
 {
@@ -34,7 +54,7 @@ load_button_cb ()
                                        file,
                                        1,
                                        NULL,
-                                       generic_cb,
+                                       image_loaded_cb,
                                        NULL);
 }
 
@@ -209,8 +229,6 @@ do_image_view (GtkWidget *do_widget)
 {
   GtkWidget *window   = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   GtkBuilder *builder = gtk_builder_new_from_resource ("/imageview/image_view.ui");
-         image_view   = GTK_WIDGET (gtk_builder_get_object (builder, "image_view"));
-          uri_entry   = GTK_WIDGET (gtk_builder_get_object (builder, "uri_entry"));
   GtkWidget *box      = GTK_WIDGET (gtk_builder_get_object (builder, "box"));
   GtkWidget *snap_angle_button = GTK_WIDGET (gtk_builder_get_object (builder, "snap_angle_check_button"));
   GtkWidget *fit_allocation_button = GTK_WIDGET (gtk_builder_get_object (builder, "fit_allocation_check_button"));
@@ -219,6 +237,8 @@ do_image_view (GtkWidget *do_widget)
 
   GtkAdjustment *scale_adjustment = GTK_ADJUSTMENT (gtk_builder_get_object (builder, "scale_adjustment"));
   GtkAdjustment *angle_adjustment = GTK_ADJUSTMENT (gtk_builder_get_object (builder, "angle_adjustment"));
+         image_view   = GTK_WIDGET (gtk_builder_get_object (builder, "image_view"));
+          uri_entry   = GTK_WIDGET (gtk_builder_get_object (builder, "uri_entry"));
 
 
   /*gtk_window_set_title (GTK_WINDOW (window), "blue: current, green: anchor");*/
