@@ -17,7 +17,7 @@
 
 /**
  * SECTION:gtkimageview
- * @Short_description: A widget for displaying content images to users.
+ * @Short_description: A widget for displaying content images to users
  * @Title: GtkImageView
  *
  * #GtkImageView is a widget intended to be used to display "content images"
@@ -32,7 +32,7 @@
  * and zoom the image.
  *
  *
- * ## Scale factor handling
+ * # Scale factor handling
  *
  * All the functions intended to set the image of a #GtkImageView instance take a
  * "scale_factor" parameter (except for gtk_image_view_set_surface(), in which case
@@ -44,19 +44,14 @@
 
 #include "config.h"
 #include "gtkimageview.h"
-#include "gtktypebuiltins.h"
 #include "gtkintl.h"
 #include "gtkprivate.h"
 #include "gtkrender.h"
-#include "gtkgesture.h"
 #include "gtkgesturerotate.h"
 #include "gtkgesturezoom.h"
 #include "gtkscrollable.h"
-#include "gtkmarshalers.h"
 #include "gtkadjustment.h"
 #include <gdk/gdkcairo.h>
-
-#include <cairo-gobject.h>
 #include <math.h>
 
 #define DEG_TO_RAD(x) (((x) / 360.0) * (2 * M_PI))
@@ -70,13 +65,12 @@
 
 /*
  *  TODO:
- *
  *   - Angle transition from 395 to 5 does a -390deg rotation
  *   - transition from !fit-allocation to fit-allocation and back
  *   - We have lots of load functions taking a scale_factor param,
  *     can we just explain that once and link to the section from there?
  *   - Setting fit-allocation to FALSE sets the scale to 1.0. Is that right?
- *
+ *   - What if I set_angle while a transition is still ongoing?
  */
 
 
@@ -127,8 +121,8 @@ struct _GtkImageViewPrivate
   /* GtkScrollable stuff */
   GtkAdjustment       *hadjustment;
   GtkAdjustment       *vadjustment;
-  GtkScrollablePolicy  hscroll_policy;
-  GtkScrollablePolicy  vscroll_policy;
+  GtkScrollablePolicy  hscroll_policy : 1;
+  GtkScrollablePolicy  vscroll_policy : 1;
 
   gboolean                is_animation;
   GdkPixbufAnimation     *source_animation;
@@ -143,11 +137,12 @@ struct _GtkImageViewPrivate
   double transition_start_scale;
   gint64 scale_transition_start;
 
+  /* We cache the bounding box size so we don't have to
+   * recompute it at every draw() */
   double cached_width;
   double cached_height;
   double cached_scale;
 };
-// XXX Actually honour the scroll policies
 
 enum
 {
@@ -218,7 +213,6 @@ gtk_image_view_get_real_scale (GtkImageView *image_view)
     return priv->scale;
 }
 
-
 static inline double
 gtk_image_view_get_real_angle (GtkImageView *image_view)
 {
@@ -279,10 +273,8 @@ gtk_image_view_transitions_enabled (GtkImageView *image_view)
                 "gtk-enable-animations", &animations_enabled,
                 NULL);
 
-
   return priv->transitions_enabled && animations_enabled && priv->image_surface;
 }
-
 
 static gboolean
 scale_frameclock_cb (GtkWidget     *widget,
@@ -316,7 +308,6 @@ scale_frameclock_cb (GtkWidget     *widget,
                                  allocation.height / 2,
                                  &state);
     }
-
 
   if (priv->fit_allocation)
     gtk_widget_queue_draw (widget);
@@ -389,7 +380,6 @@ angle_frameclock_cb (GtkWidget     *widget,
   return G_SOURCE_CONTINUE;
 }
 
-
 static void
 gtk_image_view_animate_to_angle (GtkImageView *image_view)
 {
@@ -405,7 +395,6 @@ gtk_image_view_animate_to_angle (GtkImageView *image_view)
                                 angle_frameclock_cb,
                                 NULL, NULL);
 }
-
 
 static void
 gtk_image_view_do_snapping (GtkImageView *image_view)
@@ -430,7 +419,6 @@ free_load_task_data (LoadTaskData *data)
   g_slice_free (LoadTaskData, data);
 }
 
-
 static void
 to_rotate_coords (GtkImageView *image_view,
                   State        *state,
@@ -443,7 +431,6 @@ to_rotate_coords (GtkImageView *image_view,
   *out_x = in_x - cx;
   *out_y = in_y - cy;
 }
-
 
 static void
 gtk_image_view_fix_anchor (GtkImageView *image_view,
@@ -459,7 +446,6 @@ gtk_image_view_fix_anchor (GtkImageView *image_view,
   double hupper_delta_scale, vupper_delta_scale;
   double hupper_delta_angle, vupper_delta_angle;
   double cur_scale = gtk_image_view_get_real_scale (image_view);
-
 
   g_assert (old_state->hupper > 0);
   g_assert (old_state->vupper > 0);
@@ -500,15 +486,11 @@ gtk_image_view_fix_anchor (GtkImageView *image_view,
                               vvalue + py_after - py);
   }
 
-
-
   gtk_adjustment_set_value (priv->hadjustment,
                             gtk_adjustment_get_value (priv->hadjustment) + hupper_delta_angle / 2.0);
 
   gtk_adjustment_set_value (priv->vadjustment,
                             gtk_adjustment_get_value (priv->vadjustment) + vupper_delta_angle / 2.0);
-
-
 
   {
     double rotate_anchor_x = 0;
@@ -582,7 +564,6 @@ gtk_image_view_compute_bounding_box (GtkImageView *image_view,
       return;
     }
 
-
   if (!priv->image_surface)
     {
       *width  = 0;
@@ -608,7 +589,6 @@ gtk_image_view_compute_bounding_box (GtkImageView *image_view,
 
   bb_width  = round (MAX (fabs (upper_right_x), fabs (upper_left_x)) * 2.0);
   bb_height = round (MAX (fabs (upper_right_y), fabs (upper_left_y)) * 2.0);
-
 
   if (priv->fit_allocation)
     {
@@ -640,7 +620,6 @@ gtk_image_view_compute_bounding_box (GtkImageView *image_view,
   priv->size_valid = TRUE;
 }
 
-
 static inline void
 gtk_image_view_restrict_adjustment (GtkAdjustment *adjustment)
 {
@@ -664,7 +643,6 @@ gtk_image_view_update_adjustments (GtkImageView *image_view)
   double width, height;
   int widget_width  = gtk_widget_get_allocated_width  (GTK_WIDGET (image_view));
   int widget_height = gtk_widget_get_allocated_height (GTK_WIDGET (image_view));
-
 
   if (!priv->hadjustment && !priv->vadjustment)
     return;
@@ -727,7 +705,6 @@ gtk_image_view_set_scale_internal (GtkImageView *image_view,
       g_object_notify_by_pspec (G_OBJECT (image_view),
                                 widget_props[PROP_FIT_ALLOCATION]);
     }
-
 
   gtk_image_view_update_adjustments (image_view);
 
@@ -841,7 +818,6 @@ gesture_rotate_begin_cb (GtkGesture       *gesture,
       return;
     }
 
-
   if (priv->anchor_x == -1 && priv->anchor_y == -1)
     {
       gtk_gesture_get_bounding_box_center (gesture,
@@ -866,7 +842,6 @@ gesture_rotate_end_cb (GtkGesture       *gesture,
     }
   g_object_notify_by_pspec (image_view,
                             widget_props[PROP_ANGLE]);
-
 
   priv->in_rotate = FALSE;
   priv->anchor_x = -1;
@@ -904,7 +879,6 @@ gesture_rotate_changed_cb (GtkGestureRotate *gesture,
       priv->in_rotate = TRUE;
       priv->gesture_start_angle = priv->angle;
     }
-
 
   new_angle = priv->gesture_start_angle + RAD_TO_DEG (delta);
   gtk_image_view_get_current_state (image_view, &old_state);
@@ -955,7 +929,6 @@ gtk_image_view_ensure_gestures (GtkImageView *image_view)
       g_signal_connect (priv->rotate_gesture, "end", (GCallback)gesture_rotate_end_cb, image_view);
       g_signal_connect (priv->rotate_gesture, "cancel", (GCallback)gesture_rotate_cancel_cb, image_view);
 
-
     }
   else if (!priv->rotatable && priv->rotate_gesture != NULL)
     {
@@ -993,7 +966,6 @@ gtk_image_view_init (GtkImageView *image_view)
   gtk_image_view_ensure_gestures (image_view);
 }
 
-
 static GdkPixbuf *
 gtk_image_view_get_current_frame (GtkImageView *image_view)
 {
@@ -1006,7 +978,6 @@ gtk_image_view_get_current_frame (GtkImageView *image_view)
   else
     return gdk_pixbuf_animation_get_static_image (priv->source_animation);
 }
-
 
 static gboolean
 gtk_image_view_update_animation (gpointer user_data)
@@ -1021,7 +992,6 @@ gtk_image_view_update_animation (gpointer user_data)
 
   return priv->is_animation;
 }
-
 
 static void
 gtk_image_view_start_animation (GtkImageView *image_view)
@@ -1065,7 +1035,6 @@ gtk_image_view_draw (GtkWidget *widget, cairo_t *ct)
   double draw_height;
   double scale = 0.0;
 
-
   if (priv->vadjustment && priv->hadjustment)
     {
       int x = - gtk_adjustment_get_value (priv->hadjustment);
@@ -1089,13 +1058,11 @@ gtk_image_view_draw (GtkWidget *widget, cairo_t *ct)
                                        &draw_width, &draw_height,
                                        &scale);
 
-
   if (draw_width == 0 || draw_height == 0)
     return GDK_EVENT_PROPAGATE;
 
   image_width  = cairo_image_surface_get_width (priv->image_surface)  * scale;
   image_height = cairo_image_surface_get_height (priv->image_surface) * scale;
-
 
   if (priv->hadjustment && priv->vadjustment)
     {
@@ -1108,11 +1075,7 @@ gtk_image_view_draw (GtkWidget *widget, cairo_t *ct)
       draw_y = (widget_height - image_height) / 2;
     }
 
-  cairo_save (ct);
-  /* XXX This is unnecessarily big */
-  /*cairo_rectangle (ct, draw_x, draw_y, draw_width, draw_height);*/
   cairo_rectangle (ct, 0, 0, widget_width, widget_height);
-
 
   if (priv->hadjustment && draw_width >= widget_width)
     {
@@ -1120,13 +1083,11 @@ gtk_image_view_draw (GtkWidget *widget, cairo_t *ct)
       draw_x -= gtk_adjustment_get_value (priv->hadjustment);
     }
 
-
   if (priv->vadjustment && draw_height >= widget_height)
     {
       draw_y = (draw_height - image_height) / 2;
       draw_y -= gtk_adjustment_get_value (priv->vadjustment);
     }
-
 
   /* Rotate around the center */
   cairo_translate (ct,
@@ -1137,7 +1098,6 @@ gtk_image_view_draw (GtkWidget *widget, cairo_t *ct)
                    - draw_x - (image_width  / 2.0),
                    - draw_y - (image_height / 2.0));
 
-
   cairo_scale (ct, scale * priv->scale_factor, scale * priv->scale_factor);
   cairo_set_source_surface (ct,
                             priv->image_surface,
@@ -1145,7 +1105,6 @@ gtk_image_view_draw (GtkWidget *widget, cairo_t *ct)
                             draw_y / scale / priv->scale_factor);
   cairo_pattern_set_filter (cairo_get_source (ct), CAIRO_FILTER_FAST);
   cairo_fill (ct);
-  cairo_restore (ct);
 
   return GDK_EVENT_PROPAGATE;
 }
@@ -1164,7 +1123,6 @@ gtk_image_view_set_hadjustment (GtkImageView  *image_view,
       g_signal_handlers_disconnect_by_func (priv->hadjustment, adjustment_value_changed_cb, image_view);
       g_object_unref (priv->hadjustment);
     }
-
 
   if (hadjustment)
     {
@@ -1234,7 +1192,6 @@ gtk_image_view_set_hscroll_policy (GtkImageView        *image_view,
     return;
 
   priv->hscroll_policy = hscroll_policy;
-  gtk_image_view_update_adjustments (image_view);
 }
 
 static void
@@ -1247,7 +1204,6 @@ gtk_image_view_set_vscroll_policy (GtkImageView        *image_view,
     return;
 
   priv->vscroll_policy = vscroll_policy;
-  gtk_image_view_update_adjustments (image_view);
 }
 
 /**
@@ -1265,6 +1221,12 @@ gtk_image_view_set_vscroll_policy (GtkImageView        *image_view,
  * If #GtkImageView:transitions-enabled is set to %TRUE, the internal scale value will be
  * interpolated between the old and the new scale, gtk_image_view_get_scale()
  * will report the one passed to gtk_image_view_set_scale() however.
+ *
+ * When calling this function, #GtkImageView will try to keep the currently centered
+ * point of the image where it is, so visually it will "zoom" into the current
+ * center of the widget. Note that #GtkImageView is a #GtkScrollable, so the center
+ * of the image is also the center of the scrolled window in case it is packed into
+ * a #GtkScrolledWindow.
  *
  * Since: 3.20
  */
@@ -1310,7 +1272,6 @@ gtk_image_view_set_scale (GtkImageView *image_view,
   if (!priv->image_surface)
     return;
 
-
   if (priv->hadjustment != NULL && priv->vadjustment != NULL)
     {
       int pointer_x = gtk_widget_get_allocated_width (GTK_WIDGET (image_view)) / 2;
@@ -1328,7 +1289,7 @@ gtk_image_view_set_scale (GtkImageView *image_view,
  * gtk_image_view_get_scale:
  * @image_view: A #GtkImageView instance
  *
- * Returns: The current scale applied to the image.
+ * Returns: The current value of the #GtkImageView:scale property.
  *
  * Since: 3.20
  */
@@ -1350,6 +1311,13 @@ gtk_image_view_get_scale (GtkImageView *image_view)
  *   angle of 2, setting it to -2 will result in 358.
  *   Both 0 and 360 are possible.
  *
+ * Sets the value of the #GtkImageView:angle property. When calling this function,
+ * #GtkImageView will try to keep the currently centered point of the image where it is,
+ * so visually the image will not be rotated around its center, but around the current
+ * center of the widget. Note that #GtkImageView is a #GtkScrollable, so the center
+ * of the image is also the center of the scrolled window in case it is packed into
+ * a #GtkScrolledWindow.
+ *
  * Since: 3.20
  */
 void
@@ -1365,6 +1333,8 @@ gtk_image_view_set_angle (GtkImageView *image_view,
     return;
 
   gtk_image_view_get_current_state (image_view, &state);
+
+  g_message ("Passed angle: %f", angle);
 
   if (gtk_image_view_transitions_enabled (image_view) &&
       ABS(gtk_image_view_clamp_angle (angle) - priv->angle) > ANGLE_TRANSITION_MIN_DELTA)
@@ -1423,7 +1393,7 @@ gtk_image_view_get_angle (GtkImageView *image_view)
 /**
  * gtk_image_view_set_snap_angle:
  * @image_view: A #GtkImageView instance
- * @snap_angle: The new value of the #snap-angle property
+ * @snap_angle: The new value of the #GtkImageView:snap-angle property
  *
  * Setting #snap-angle to %TRUE will cause @image_view's  angle to
  * be snapped to 90° steps. Setting the #GtkImageView:angle property will cause it to
@@ -1474,12 +1444,10 @@ gtk_image_view_get_snap_angle (GtkImageView *image_view)
   return priv->snap_angle;
 }
 
-
-
 /**
  * gtk_image_view_set_fit_allocation:
  * @image_view: A #GtkImageView instance
- * @fit_allocation: The new value of the #fit-allocation property.
+ * @fit_allocation: The new value of the #GtkImageView:fit-allocation property.
  *
  * Setting #GtkImageView:fit-allocation to %TRUE will cause the image to be scaled
  * to the widget's allocation, unless it would cause the image to be
@@ -1546,7 +1514,7 @@ gtk_image_view_get_fit_allocation (GtkImageView *image_view)
 /**
  * gtk_image_view_set_rotatable:
  * @image_view: A #GtkImageView instance
- * @rotatable: The new value of the rotatable property
+ * @rotatable: The new value of the #GtkImageView:rotatable property
  *
  * Sets the value of the #GtkImageView:rotatable property to @rotatable. This controls whether
  * the user can change the angle of the displayed image using a two-finger gesture.
@@ -1591,7 +1559,7 @@ gtk_image_view_get_rotatable (GtkImageView *image_view)
 /**
  * gtk_image_view_set_zoomable:
  * @image_view: A #GtkImageView instance
- * @zoomable: The new value of the #zoomable property
+ * @zoomable: The new value of the #GtkImageView:zoomable property
  *
  * Sets the new value of the #GtkImageView:zoomable property. This controls whether the user can
  * change the #GtkImageView:scale property using a two-finger gesture.
@@ -1636,9 +1604,11 @@ gtk_image_view_get_zoomable (GtkImageView *image_view)
 /**
  * gtk_image_view_set_transitions_enabled:
  * @image_view: A #GtkImageView instance
- * @transitions_enabled: The new value of the #transitions-enabled property
+ * @transitions_enabled: The new value of the #GtkImageView:transitions-enabled property
  *
  * Sets the new value of the #GtkImageView:transitions-enabled property.
+ * Note that even if #GtkImageView:transitions-enabled is %TRUE, transitions will
+ * not be used if #GtkSettings:gtk-enable-animations is %FALSE.
  *
  * Since: 3.20
  */
@@ -1787,7 +1757,6 @@ gtk_image_view_unmap (GtkWidget *widget)
 {
   GtkImageViewPrivate *priv = gtk_image_view_get_instance_private (GTK_IMAGE_VIEW (widget));
 
-
   if (priv->is_animation)
     gtk_image_view_stop_animation (GTK_IMAGE_VIEW (widget));
 
@@ -1856,7 +1825,6 @@ gtk_image_view_get_preferred_width (GtkWidget *widget,
     }
 }
 
-
 static gboolean
 gtk_image_view_scroll_event (GtkWidget       *widget,
                              GdkEventScroll  *event)
@@ -1873,7 +1841,6 @@ gtk_image_view_scroll_event (GtkWidget       *widget,
   if (event->state & GDK_SHIFT_MASK ||
       event->state & GDK_CONTROL_MASK)
     return GDK_EVENT_PROPAGATE;
-
 
   gtk_image_view_get_current_state (image_view, &state);
 
@@ -1938,7 +1905,6 @@ gtk_image_view_set_property (GObject      *object,
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
     }
 }
-
 
 static void
 gtk_image_view_get_property (GObject    *object,
@@ -2049,9 +2015,9 @@ gtk_image_view_class_init (GtkImageViewClass *view_class)
   /**
    * GtkImageView:scale-set:
    * Whether or not the current value of the scale property was set by the user.
-   * This is to distringuish between scale values set by the GtkImageView itself,
-   * e.g. when fit-allocation is true, which will change the scale depeding on the
-   * widget allocation.
+   * This is to distringuish between scale values set by the #GtkImageView itself,
+   * e.g. when #GtkImageView:fit-allocation is true, which will change the scale
+   * depending on the widget allocation.
    *
    * Since: 3.20
    */
@@ -2087,7 +2053,8 @@ gtk_image_view_class_init (GtkImageViewClass *view_class)
                                                        GTK_PARAM_READWRITE|G_PARAM_EXPLICIT_NOTIFY);
 /**
    * GtkImageView:zoomable:
-   * Whether or not the image can be scaled using a two-finger zoom gesture.
+   * Whether or not the image can be scaled using a two-finger zoom gesture, as well as
+   * scrolling on the #GtkImageView.
    *
    * Since: 3.20
    */
@@ -2100,7 +2067,8 @@ gtk_image_view_class_init (GtkImageViewClass *view_class)
    * GtkImageView:snap-angle:
    * Whether or not the angle property snaps to 90° steps. If this is enabled
    * and the angle property gets set to a non-90° step, the new value will be
-   * set to the closest 90° step
+   * set to the closest 90° step. If #GtkImageView:transitions-enabled is %TRUE,
+   * the angle change from the current angle to the new angle will be interpolated.
    *
    * Since: 3.20
    */
@@ -2112,7 +2080,7 @@ gtk_image_view_class_init (GtkImageViewClass *view_class)
 
   /**
    * GtkImageView:fit-allocation:
-   * If this is TRUE, the scale the image will be drawn in will depend on the current
+   * If this is %TRUE, the scale the image will be drawn in will depend on the current
    * widget allocation. The image will be scaled down to fit into the widget allocation,
    * but never scaled up.
    *
@@ -2129,17 +2097,19 @@ gtk_image_view_class_init (GtkImageViewClass *view_class)
    *
    *  Whether or not certain property changes will be interpolated. This affects a variety
    *  of function calls on a #GtkImageView instance, e.g. setting the angle property, the
-   *  scale property, but also the angle snapping in case snap-angle is set.
+   *  scale property, but also the angle snapping in case #GtkImageView:snap-angle is set.
+   *
+   *  Note that the transitions in #GtkImageView never apply to the actual property values
+   *  set and instead interpolate between the visual angle/scale, so you cannot depend on
+   *  getting 60 notify signal emissions per second.
    *
    *  Since: 3.20
    */
   widget_props[PROP_TRANSITIONS_ENABLED] = g_param_spec_boolean ("transitions-enabled",
                                                                  P_("Transitions Enabled"),
-                                                                 P_("Wheter scale and angle changes get interpolated"),
+                                                                 P_("Whether scale and angle changes get interpolated"),
                                                                  TRUE,
                                                                  GTK_PARAM_READWRITE|G_PARAM_EXPLICIT_NOTIFY);
-
-
 
   g_object_class_install_properties (object_class, LAST_WIDGET_PROPERTY, widget_props);
 
@@ -2192,27 +2162,30 @@ gtk_image_view_update_surface (GtkImageView    *image_view,
                                int              scale_factor)
 {
   GtkImageViewPrivate *priv = gtk_image_view_get_instance_private (image_view);
-  int new_width    = gdk_pixbuf_get_width (frame);
-  int new_height   = gdk_pixbuf_get_height (frame);
-  int widget_scale = gtk_widget_get_scale_factor (GTK_WIDGET (image_view));
-  int real_width   = (new_width * scale_factor)  / widget_scale;
-  int real_height  = (new_height * scale_factor) / widget_scale;
+  GdkWindow *window = gtk_widget_get_window (GTK_WIDGET (image_view));
+  cairo_surface_t *new_surface;
+  gboolean size_changed = TRUE;
 
   new_surface = gdk_cairo_surface_create_from_pixbuf (frame,
                                                       scale_factor,
                                                       window);
 
+  if (priv->image_surface)
+    {
+      size_changed = (cairo_image_surface_get_width (priv->image_surface) !=
+                      cairo_image_surface_get_width (new_surface)) ||
+                     (cairo_image_surface_get_height (priv->image_surface) !=
+                      cairo_image_surface_get_height (new_surface));
+    }
+
   gtk_image_view_replace_surface (image_view,
                                   new_surface,
                                   scale_factor);
 
-  /* TODO: Strictly speaking, we don't need to queue a resize if the
-   * surface size doesn't change. */
-
-  if (!priv->fit_allocation)
-    gtk_widget_queue_resize (GTK_WIDGET (image_view));
-  else
+  if (priv->fit_allocation || !size_changed)
     gtk_widget_queue_draw (GTK_WIDGET (image_view));
+  else
+    gtk_widget_queue_resize (GTK_WIDGET (image_view));
 
   g_assert (priv->image_surface != NULL);
 }
@@ -2254,8 +2227,6 @@ gtk_image_view_replace_animation (GtkImageView       *image_view,
 
 }
 
-
-
 static void
 gtk_image_view_load_image_from_stream (GtkImageView *image_view,
                                        GInputStream *input_stream,
@@ -2296,7 +2267,6 @@ gtk_image_view_load_image_contents (GTask        *task,
       g_task_return_error (task, error);
       return;
     }
-
 
   /* Closes and unrefs the input stream */
   gtk_image_view_load_image_from_stream (image_view,
@@ -2377,7 +2347,10 @@ gtk_image_view_load_from_file_async (GtkImageView        *image_view,
  * @result: A #GAsyncResult
  * @error: (nullable): Location to store error information in case the operation fails
  *
- * Returns: %TRUE if the operation succeeded, %FALSE otherwise.
+ * Finished an asynchronous operation started with gtk_image_view_load_from_file_async().
+ *
+ * Returns: %TRUE if the operation succeeded, %FALSE otherwise,
+ * in which case @error will be set.
  *
  * Since: 3.20
  */
@@ -2435,6 +2408,8 @@ gtk_image_view_load_from_stream_async (GtkImageView        *image_view,
  * @result: A #GAsyncResult
  * @error: (nullable): Location to store error information on failure
  *
+ * Finishes an asynchronous operation started by gtk_image_view_load_from_stream_async().
+ *
  * Returns: %TRUE if the operation finished successfully, %FALSE otherwise.
  *
  * Since: 3.20
@@ -2459,6 +2434,10 @@ gtk_image_view_load_from_stream_finish (GtkImageView  *image_view,
  *   factor is 2, and the screen's scale factor is also 2, the
  *   pixbuf won't be scaled up.
  *
+ * Sets the internal image to @pixbuf. @image_view will not take ownership of @pixbuf,
+ * so it will not unref or free it in any way. If you want to unset the internal
+ * image data, look at gtk_image_view_set_surface().
+ *
  * Since: 3.20
  */
 void
@@ -2471,7 +2450,6 @@ gtk_image_view_set_pixbuf (GtkImageView    *image_view,
   g_return_if_fail (GTK_IS_IMAGE_VIEW (image_view));
   g_return_if_fail (GDK_IS_PIXBUF (pixbuf));
   g_return_if_fail (scale_factor >= 0);
-
 
   if (priv->is_animation)
     {
@@ -2489,8 +2467,10 @@ gtk_image_view_set_pixbuf (GtkImageView    *image_view,
  * gtk_image_view_set_surface:
  * @image_view: A #GtkImageView instance
  * @surface: (nullable) (transfer full): A #cairo_surface_t of type %CAIRO_SURFACE_TYPE_IMAGE, or
- *   %NULL to unset any internal image data. In case this is %NULL, the scale will
- *   be reset to 1.0.
+ *   %NULL to unset any internal image data.
+ *
+ * Sets the internal surface to @surface. @image_view will assume ownership of this surface.
+ * You can use this function to unset any internal image data by passing %NULL as @surface.
  *
  * Since: 3.20
  */
@@ -2512,17 +2492,6 @@ gtk_image_view_set_surface (GtkImageView    *image_view,
 
       g_return_if_fail (scale_x == scale_y);
     }
-  else
-    {
-      priv->scale = 1.0;
-      g_object_notify_by_pspec (G_OBJECT (image_view),
-                                widget_props[PROP_SCALE]);
-      priv->scale_set = FALSE;
-      g_object_notify_by_pspec (G_OBJECT (image_view),
-                                widget_props[PROP_SCALE_SET]);
-    }
-
-
 
   if (priv->is_animation)
     {
@@ -2552,6 +2521,10 @@ gtk_image_view_set_surface (GtkImageView    *image_view,
  *   with the given scale factor", i.e. if the animation's scale
  *   factor is 2, and the screen's scale factor is also 2, the
  *   animation won't be scaled up.
+ *
+ * Takes the given #GdkPixbufAnimation and sets the internal image to that
+ * animation. This will also automatically start the animation. If you want
+ * to unset the internal image data, look at gtk_image_view_set_surface().
  *
  * Since: 3.20
  */
