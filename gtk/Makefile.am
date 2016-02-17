@@ -125,6 +125,7 @@ gtk_public_h_sources = 		\
 	gtkx-autocleanups.h	\
 	gtk-a11y.h		\
 	gtkaboutdialog.h	\
+	gtkabstractimage.h 	\
 	gtkaccelgroup.h		\
 	gtkaccellabel.h		\
 	gtkaccelmap.h		\
@@ -606,6 +607,7 @@ gtk_base_c_sources = 		\
 	gtksearchenginemodel.c	\
 	fnmatch.c		\
 	gtkaboutdialog.c	\
+	gtkabstractimage.c 	\
 	gtkaccelgroup.c		\
 	gtkaccellabel.c		\
 	gtkaccelmap.c		\
