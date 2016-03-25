@@ -1140,8 +1140,8 @@ gtk_image_view_set_vadjustment (GtkImageView  *image_view,
 
   if (vadjustment)
     {
-      g_signal_connect ((GObject *)vadjustment, "value-changed",
-                        (GCallback) adjustment_value_changed_cb, image_view);
+      g_signal_connect (G_OBJECT (vadjustment), "value-changed",
+                        G_CALLBACK (adjustment_value_changed_cb), image_view);
       priv->vadjustment = g_object_ref_sink (vadjustment);
     }
   else
