@@ -47,6 +47,8 @@ gtk_abstract_image_class_init (GtkAbstractImageClass *klass)
                                          NULL, NULL,
                                          _gtk_marshal_VOID__VOID,
                                          G_TYPE_NONE, 0);
+
+  klass->changed = NULL;
 }
 
 int

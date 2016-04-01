@@ -263,7 +263,7 @@ gtk_image_view_transitions_enabled (GtkImageView *image_view)
   return priv->transitions_enabled && animations_enabled && priv->image;
 }
 
-void
+static void
 image_changed_cb (GtkAbstractImage *image, gpointer user_data)
 {
   GtkImageView *image_view = user_data;
@@ -1945,6 +1945,13 @@ gtk_image_view_finalize (GObject *object)
 
   g_clear_object (&priv->hadjustment);
   g_clear_object (&priv->vadjustment);
+
+
+  if (priv->image)
+    {
+      g_signal_connect (priv->image, "changed", G_CALLBACK (image_changed_cb), image_view);
+      g_clear_object (&priv->image);
+    }
 
   G_OBJECT_CLASS (gtk_image_view_parent_class)->finalize (object);
 }

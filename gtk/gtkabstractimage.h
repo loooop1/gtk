@@ -51,7 +51,7 @@ struct _GtkAbstractImageClass
   int    (*get_scale_factor) (GtkAbstractImage *image);
   void   (*draw) (GtkAbstractImage *image, cairo_t *ct);
 
-  void   (*changed) (GtkAbstractImage image);
+  void   (*changed) (GtkAbstractImage *image);
 };
 
 GDK_AVAILABLE_IN_3_20
