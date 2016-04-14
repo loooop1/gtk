@@ -83,6 +83,8 @@ typedef struct
 struct _GtkImageViewPrivate
 {
   GtkAbstractImage *image;
+  int image_width;
+  int image_height;
   GdkWindow *event_window;
 
   double   scale;
@@ -267,8 +269,24 @@ static void
 image_changed_cb (GtkAbstractImage *image, gpointer user_data)
 {
   GtkImageView *image_view = user_data;
+  GtkImageViewPrivate *priv = gtk_image_view_get_instance_private (image_view);
+  gboolean size_changed = FALSE;
 
-  gtk_widget_queue_draw (GTK_WIDGET (image_view));
+  if (gtk_abstract_image_get_width (image)  != priv->image_width ||
+      gtk_abstract_image_get_height (image) != priv->image_height)
+    {
+      size_changed = TRUE;
+      priv->size_valid = FALSE;
+      priv->image_width  = gtk_abstract_image_get_width (image);
+      priv->image_height = gtk_abstract_image_get_height (image);
+
+      gtk_image_view_update_adjustments (image_view);
+    }
+
+  if (priv->fit_allocation || !size_changed)
+    gtk_widget_queue_draw (GTK_WIDGET (image_view));
+  else
+    gtk_widget_queue_resize (GTK_WIDGET (image_view));
 }
 
 static gboolean
@@ -598,8 +616,8 @@ gtk_image_view_compute_bounding_box (GtkImageView *image_view,
   if (scale_factor == 0)
     scale_factor = gtk_widget_get_scale_factor (GTK_WIDGET (image_view));
 
-  image_width = gtk_abstract_image_get_width (priv->image) / scale_factor;
-  image_height = gtk_abstract_image_get_height (priv->image) / scale_factor;
+  image_width  = priv->image_width / scale_factor;
+  image_height = priv->image_height/ scale_factor;
 
   upper_right_degrees = DEG_TO_RAD (angle) + atan (image_height / image_width);
   upper_left_degrees  = DEG_TO_RAD (angle) + atan (image_height / -image_width);
@@ -1041,8 +1059,8 @@ gtk_image_view_draw (GtkWidget *widget, cairo_t *ct)
   if (scale_factor == 0)
     scale_factor = gtk_widget_get_scale_factor (widget);
 
-  image_width = gtk_abstract_image_get_width (priv->image) * scale / scale_factor;
-  image_height = gtk_abstract_image_get_height (priv->image) * scale / scale_factor;
+  image_width  = priv->image_width * scale / scale_factor;
+  image_height = priv->image_height* scale / scale_factor;
 
   if (priv->hadjustment && priv->vadjustment)
     {
@@ -2143,6 +2161,8 @@ gtk_image_view_replace_image (GtkImageView     *image_view,
     {
       g_object_ref (priv->image);
       g_signal_connect (priv->image, "changed", G_CALLBACK (image_changed_cb), image_view);
+      priv->image_width  = gtk_abstract_image_get_width (priv->image);
+      priv->image_height = gtk_abstract_image_get_height (priv->image);
     }
 
   if (GTK_IS_PLAYABLE (priv->image) && gtk_widget_get_mapped (GTK_WIDGET (image_view)))
