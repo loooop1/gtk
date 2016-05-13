@@ -127,11 +127,9 @@ struct _GtkImageViewPrivate
 
   /* Transitions */
   double transition_start_angle;
-  gint64 angle_transition_start;
   guint  angle_transition_id;
 
   double transition_start_scale;
-  gint64 scale_transition_start;
   guint  scale_transition_id;
 
   /* We cache the bounding box size so we don't have to
@@ -355,7 +353,6 @@ gtk_image_view_animate_to_scale (GtkImageView *image_view)
   priv->in_scale_transition = TRUE;
   priv->visible_scale = priv->scale;
   priv->transition_start_scale = priv->scale;
-  priv->scale_transition_start = gdk_frame_clock_get_frame_time (gtk_widget_get_frame_clock (GTK_WIDGET (image_view)));
 
   gtk_progress_tracker_start (&priv->scale_tracker, TRANSITION_DURATION, 0, 1.0);
   priv->scale_transition_id = gtk_widget_add_tick_callback (GTK_WIDGET (image_view),
@@ -435,7 +432,6 @@ gtk_image_view_animate_to_angle (GtkImageView *image_view,
   priv->in_angle_transition = TRUE;
   priv->visible_angle = priv->angle;
   priv->transition_start_angle = priv->angle;
-  priv->angle_transition_start = gdk_frame_clock_get_frame_time (gtk_widget_get_frame_clock (GTK_WIDGET (image_view)));
 
   gtk_progress_tracker_start (&priv->angle_tracker, TRANSITION_DURATION, 0, 1.0);
   priv->angle_transition_id = gtk_widget_add_tick_callback (GTK_WIDGET (image_view),
