@@ -52,6 +52,7 @@
 #include "gtkscrollable.h"
 #include "gtkadjustment.h"
 #include "gtkabstractimage.h"
+#include "gtkprogresstrackerprivate.h"
 #include <gdk/gdkcairo.h>
 #include <math.h>
 
@@ -101,6 +102,9 @@ struct _GtkImageViewPrivate
   gboolean transitions_enabled : 1;
   gboolean in_angle_transition : 1;
   gboolean in_scale_transition : 1;
+
+  GtkProgressTracker scale_tracker;
+  GtkProgressTracker angle_tracker;
 
   GtkGesture *rotate_gesture;
   double      gesture_start_angle;
@@ -297,10 +301,13 @@ scale_frameclock_cb (GtkWidget     *widget,
   GtkImageView *image_view = GTK_IMAGE_VIEW (widget);
   GtkImageViewPrivate *priv = gtk_image_view_get_instance_private (image_view);
   State state;
-  gint64 now = gdk_frame_clock_get_frame_time (frame_clock);
+  double t;
+  double new_scale;
 
-  double t = (now - priv->scale_transition_start) / TRANSITION_DURATION;
-  double new_scale = (priv->scale - priv->transition_start_scale) * t;
+  gtk_progress_tracker_advance_frame (&priv->scale_tracker, gdk_frame_clock_get_frame_time (frame_clock));
+  t = gtk_progress_tracker_get_ease_out_cubic (&priv->scale_tracker, FALSE);
+
+  new_scale = (priv->scale - priv->transition_start_scale) * t;
 
   gtk_image_view_get_current_state (image_view, &state);
 
@@ -327,7 +334,7 @@ scale_frameclock_cb (GtkWidget     *widget,
   else
     gtk_widget_queue_resize (widget);
 
-  if (t >= 1.0)
+  if (gtk_progress_tracker_get_state (&priv->scale_tracker) == GTK_PROGRESS_STATE_AFTER)
     {
       priv->scale_transition_id = 0;
       return G_SOURCE_REMOVE;
@@ -350,6 +357,7 @@ gtk_image_view_animate_to_scale (GtkImageView *image_view)
   priv->transition_start_scale = priv->scale;
   priv->scale_transition_start = gdk_frame_clock_get_frame_time (gtk_widget_get_frame_clock (GTK_WIDGET (image_view)));
 
+  gtk_progress_tracker_start (&priv->scale_tracker, TRANSITION_DURATION, 0, 1.0);
   priv->scale_transition_id = gtk_widget_add_tick_callback (GTK_WIDGET (image_view),
                                                             scale_frameclock_cb,
                                                             NULL, NULL);
@@ -363,7 +371,8 @@ angle_frameclock_cb (GtkWidget     *widget,
   GtkImageView *image_view = GTK_IMAGE_VIEW (widget);
   GtkImageViewPrivate *priv = gtk_image_view_get_instance_private (image_view);
   int direction = GPOINTER_TO_INT (user_data);
-  gint64 now = gdk_frame_clock_get_frame_time (frame_clock);
+  double new_angle;
+  double t;
   State state;
   double target_angle = priv->angle;
 
@@ -372,8 +381,9 @@ angle_frameclock_cb (GtkWidget     *widget,
   else if (direction == 0 && target_angle > priv->transition_start_angle)
     target_angle -= 360.0;
 
-  double t = (now - priv->angle_transition_start) / TRANSITION_DURATION;
-  double new_angle = (target_angle - priv->transition_start_angle) * t;
+  gtk_progress_tracker_advance_frame (&priv->angle_tracker, gdk_frame_clock_get_frame_time (frame_clock));
+  t = gtk_progress_tracker_get_ease_out_cubic (&priv->angle_tracker, FALSE);
+  new_angle = (target_angle - priv->transition_start_angle) * t;
 
   gtk_image_view_get_current_state (image_view, &state);
 
@@ -400,7 +410,7 @@ angle_frameclock_cb (GtkWidget     *widget,
   else
     gtk_widget_queue_resize (widget);
 
-  if (t >= 1.0)
+  if (gtk_progress_tracker_get_state (&priv->angle_tracker) == GTK_PROGRESS_STATE_AFTER)
     {
       priv->angle_transition_id = 0;
       return G_SOURCE_REMOVE;
@@ -427,6 +437,7 @@ gtk_image_view_animate_to_angle (GtkImageView *image_view,
   priv->transition_start_angle = priv->angle;
   priv->angle_transition_start = gdk_frame_clock_get_frame_time (gtk_widget_get_frame_clock (GTK_WIDGET (image_view)));
 
+  gtk_progress_tracker_start (&priv->angle_tracker, TRANSITION_DURATION, 0, 1.0);
   priv->angle_transition_id = gtk_widget_add_tick_callback (GTK_WIDGET (image_view),
                                                             angle_frameclock_cb,
                                                             GINT_TO_POINTER (direction),
