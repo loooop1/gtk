@@ -91,17 +91,17 @@ struct _GtkImageViewPrivate
   double   scale;
   double   angle;
 
-  gboolean fit_allocation      : 1;
-  gboolean scale_set           : 1;
-  gboolean snap_angle          : 1;
-  gboolean rotatable           : 1;
-  gboolean zoomable            : 1;
-  gboolean in_rotate           : 1;
-  gboolean in_zoom             : 1;
-  gboolean size_valid          : 1;
-  gboolean transitions_enabled : 1;
-  gboolean in_angle_transition : 1;
-  gboolean in_scale_transition : 1;
+  guint fit_allocation      : 1;
+  guint scale_set           : 1;
+  guint snap_angle          : 1;
+  guint rotatable           : 1;
+  guint zoomable            : 1;
+  guint in_rotate           : 1;
+  guint in_zoom             : 1;
+  guint size_valid          : 1;
+  guint transitions_enabled : 1;
+  guint in_angle_transition : 1;
+  guint in_scale_transition : 1;
 
   GtkProgressTracker scale_tracker;
   GtkProgressTracker angle_tracker;
@@ -264,7 +264,10 @@ gtk_image_view_transitions_enabled (GtkImageView *image_view)
                 "gtk-enable-animations", &animations_enabled,
                 NULL);
 
-  return priv->transitions_enabled && animations_enabled && priv->image;
+  return priv->transitions_enabled &&
+         animations_enabled &&
+         priv->image &&
+         gtk_widget_get_mapped (GTK_WIDGET (image_view));
 }
 
 static void
@@ -537,8 +540,8 @@ gtk_image_view_fix_anchor (GtkImageView *image_view,
                             gtk_adjustment_get_value (priv->vadjustment) + vupper_delta_angle / 2.0);
 
   {
-    double rotate_anchor_x = 0;
-    double rotate_anchor_y = 0;
+    double rotate_anchor_x;
+    double rotate_anchor_y;
     double anchor_angle;
     double anchor_length;
     double new_anchor_x, new_anchor_y;
@@ -1787,19 +1790,20 @@ gtk_image_view_get_preferred_height (GtkWidget *widget,
   GtkImageView *image_view  = GTK_IMAGE_VIEW (widget);
   GtkImageViewPrivate *priv = gtk_image_view_get_instance_private (image_view);
 
-  double width, height;
-  gtk_image_view_compute_bounding_box (image_view,
-                                       &width,
-                                       &height,
-                                       NULL);
 
-  if (priv->fit_allocation)
+
+  if (priv->fit_allocation && priv->image)
     {
       *minimal = 0;
-      *natural = height;
+      *natural = gtk_abstract_image_get_height (priv->image);
     }
   else
     {
+      double width, height;
+      gtk_image_view_compute_bounding_box (image_view,
+                                           &width,
+                                           &height,
+                                           NULL);
       *minimal = height;
       *natural = height;
     }
@@ -1812,19 +1816,20 @@ gtk_image_view_get_preferred_width (GtkWidget *widget,
 {
   GtkImageView *image_view  = GTK_IMAGE_VIEW (widget);
   GtkImageViewPrivate *priv = gtk_image_view_get_instance_private (image_view);
-  double width, height;
 
-  gtk_image_view_compute_bounding_box (image_view,
-                                       &width,
-                                       &height,
-                                       NULL);
-  if (priv->fit_allocation)
+  if (priv->fit_allocation && priv->image)
     {
       *minimal = 0;
-      *natural = width;
+      *natural = gtk_abstract_image_get_width (priv->image);
     }
   else
     {
+      double width, height;
+
+      gtk_image_view_compute_bounding_box (image_view,
+                                           &width,
+                                           &height,
+                                           NULL);
       *minimal = width;
       *natural = width;
     }
@@ -1994,13 +1999,13 @@ gtk_image_view_class_init (GtkImageViewClass *view_class)
   object_class->get_property = gtk_image_view_get_property;
   object_class->finalize     = gtk_image_view_finalize;
 
-  widget_class->draw          = gtk_image_view_draw;
-  widget_class->realize       = gtk_image_view_realize;
-  widget_class->unrealize     = gtk_image_view_unrealize;
-  widget_class->size_allocate = gtk_image_view_size_allocate;
-  widget_class->map           = gtk_image_view_map;
-  widget_class->unmap         = gtk_image_view_unmap;
-  widget_class->scroll_event  = gtk_image_view_scroll_event;
+  widget_class->draw                 = gtk_image_view_draw;
+  widget_class->realize              = gtk_image_view_realize;
+  widget_class->unrealize            = gtk_image_view_unrealize;
+  widget_class->size_allocate        = gtk_image_view_size_allocate;
+  widget_class->map                  = gtk_image_view_map;
+  widget_class->unmap                = gtk_image_view_unmap;
+  widget_class->scroll_event         = gtk_image_view_scroll_event;
   widget_class->get_preferred_width  = gtk_image_view_get_preferred_width;
   widget_class->get_preferred_height = gtk_image_view_get_preferred_height;
 
@@ -2301,6 +2306,7 @@ gtk_image_view_load_from_file_async (GtkImageView        *image_view,
 {
   GTask *task;
   LoadTaskData *task_data;
+
   g_return_if_fail (GTK_IS_IMAGE_VIEW (image_view));
   g_return_if_fail (G_IS_FILE (file));
   g_return_if_fail (scale_factor >= 0);
@@ -2363,6 +2369,7 @@ gtk_image_view_load_from_stream_async (GtkImageView        *image_view,
 {
   GTask *task;
   LoadTaskData *task_data;
+
   g_return_if_fail (GTK_IS_IMAGE_VIEW (image_view));
   g_return_if_fail (G_IS_INPUT_STREAM (input_stream));
   g_return_if_fail (scale_factor >= 0);
