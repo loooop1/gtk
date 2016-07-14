@@ -483,8 +483,6 @@ gtk_revealer_real_size_allocate (GtkWidget     *widget,
                               allocation->width, allocation->height);
 
       gtk_revealer_get_padding (revealer, &padding);
-      bin_x = 0;
-      bin_y = 0;
 
       transition = effective_transition (revealer);
       /* The child allocation is fixed (it is not modified by the animation),
