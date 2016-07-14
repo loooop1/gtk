@@ -121,7 +121,7 @@ gtk_builtin_icon_get_preferred_size (GtkCssGadget   *gadget,
       *minimum_baseline = *minimum * 0.5 + PANGO_PIXELS (priv->strikethrough);
     }
 
-  if (natural_baseline)
+  if (natural_baseline && minimum_baseline)
     *natural_baseline = *minimum_baseline;
 }
 
